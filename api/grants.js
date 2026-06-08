@@ -149,6 +149,26 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── 업종 관련 키워드 필터링 ──
+    const industryKeywords = {
+      food:         ['식품','음식','카페','외식','농식품','소상공인','식당','제과','베이커리'],
+      retail:       ['유통','판로','온라인','쇼핑','소상공인','상권','이커머스','도소매'],
+      service:      ['서비스','소상공인','미용','교육','학원','세탁','수리','생활'],
+      it:           ['IT','기술','소프트웨어','디지털','AI','스마트','ICT','앱','플랫폼','스타트업','벤처','창업','R&D','혁신'],
+      manufacturing:['제조','공장','생산','스마트공장','기계','소재','부품','자동화','설비'],
+      other:        ['소상공인','중소기업','창업','지원']
+    };
+
+    const indKws = industryKeywords[industry] || industryKeywords.other;
+
+    // 업종 키워드가 하나라도 포함된 사업 우선 정렬
+    itemList = itemList.map(function(item) {
+      const t = (item.pblancNm||'') + (item.bsnsSumryCn||'') + (item.pldirSportRealmLclasCodeNm||'');
+      var sc = 0;
+      indKws.forEach(function(kw){ if(t.includes(kw)) sc += 2; });
+      return Object.assign({}, item, {_ind_score: sc});
+    }).sort(function(a,b){ return b._ind_score - a._ind_score; });
+
     // ── 목표 키워드 점수 정렬 ──
     const goalList = goals ? goals.split(',').filter(Boolean) : [];
     const kwList = [];
@@ -159,8 +179,12 @@ export default async function handler(req, res) {
         const t = (item.pblancNm||'')+(item.bsnsSumryCn||'')+(item.hashtags||'');
         var sc = 0;
         kwList.forEach(function(kw){ if(t.includes(kw)) sc++; });
-        return Object.assign({}, item, {_score:sc});
+        // 업종 점수와 합산
+        return Object.assign({}, item, {_score: sc + (item._ind_score||0)});
       }).sort(function(a,b){ return b._score - a._score; });
+    } else {
+      // 목표 없으면 업종 점수로만 정렬
+      itemList = itemList.sort(function(a,b){ return (b._ind_score||0) - (a._ind_score||0); });
     }
 
     const result = itemList.slice(0, 5);
