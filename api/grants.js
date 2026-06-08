@@ -120,13 +120,24 @@ export default async function handler(req, res) {
 
     // ── 지역 필터링 ──
     if (regionKr) {
+      // 1차: 선택지역 + 전국 사업
       const regionFiltered = itemList.filter(function(item) {
         const txt = (item.pblancNm||'') + (item.jrsdInsttNm||'') + (item.bsnsSumryCn||'');
         const isNational = !txt.match(/\[(서울|경기|인천|부산|대구|광주|대전|울산|세종|강원|경남|경북|전남|전북|충남|충북|제주)\]/);
         const isMyRegion = txt.includes(regionKr);
         return isNational || isMyRegion;
       });
-      if (regionFiltered.length >= 3) itemList = regionFiltered;
+      if (regionFiltered.length >= 3) {
+        itemList = regionFiltered;
+      } else {
+        // 2차: 전국 사업만 (지역 태그 없는 것)
+        const nationalOnly = itemList.filter(function(item) {
+          const txt = (item.pblancNm||'');
+          return !txt.match(/^\[(서울|경기|인천|부산|대구|광주|대전|울산|세종|강원|경남|경북|전남|전북|충남|충북|제주)\]/);
+        });
+        if (nationalOnly.length >= 3) itemList = nationalOnly;
+        // 3차: 그래도 없으면 전체 사용
+      }
     }
 
     // ── 목표 키워드 점수 정렬 ──
