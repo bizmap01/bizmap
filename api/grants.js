@@ -102,7 +102,8 @@ export default async function handler(req, res) {
 
   try {
     const encodedKey = encodeURIComponent(API_KEY);
-    const url = `https://apis.data.go.kr/1421000/bizinfo/pblancBsnsService?serviceKey=${encodedKey}&numOfRows=50&pageNo=1&dataType=json&searchLclasId=${searchLclasId}`;
+    // 분야코드 없이 전체 조회 후 코드에서 필터링
+    const url = `https://apis.data.go.kr/1421000/bizinfo/pblancBsnsService?serviceKey=${encodedKey}&numOfRows=50&pageNo=1&dataType=json`;
 
     const response = await fetch(url, { headers: {'Accept':'application/json'} });
     const text = await response.text();
