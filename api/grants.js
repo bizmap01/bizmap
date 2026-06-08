@@ -144,12 +144,20 @@ export default async function handler(req, res) {
       kwList.forEach(function(kw){ if(t.includes(kw)) goalSc++; });
       // 지역 점수
       var regSc = 0;
+      var regionTags = ['서울','경기','인천','부산','대구','광주','대전','울산','세종','강원','경남','경북','전남','전북','충남','충북','제주'];
       if(regionKr){
-        const isNational = !item.pblancNm.match(/^\[(서울|경기|인천|부산|대구|광주|대전|울산|세종|강원|경남|경북|전남|전북|충남|충북|제주)\]/);
-        const isMyRegion = t.includes(regionKr);
-        if(isMyRegion) regSc = 3;
-        else if(isNational) regSc = 1;
-        else regSc = -5; // 다른 지역 사업은 점수 낮춤
+        var nm = item.pblancNm || '';
+        var hasRegionTag = false;
+        var isMyRegion = false;
+        regionTags.forEach(function(r){
+          if(nm.includes('['+r+']') || nm.includes('【'+r+'】')) {
+            hasRegionTag = true;
+            if(r === regionKr) isMyRegion = true;
+          }
+        });
+        if(isMyRegion) regSc = 10;        // 내 지역 사업 강하게 우선
+        else if(!hasRegionTag) regSc = 3; // 전국 사업
+        else regSc = -20;                 // 다른 지역 사업 강하게 패널티
       }
       return Object.assign({}, item, {_score: indSc + goalSc + regSc});
     }).sort(function(a,b){ return b._score - a._score; });
