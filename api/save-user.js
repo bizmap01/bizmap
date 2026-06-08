@@ -12,35 +12,39 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-
-    // 구글 앱스 스크립트 웹훅으로 전송
-    const response = await fetch(SHEET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        timestamp:   body.timestamp   || new Date().toLocaleString('ko-KR'),
-        company:     body.company     || '',
-        owner:       body.owner       || '',
-        phone:       body.phone       || '',
-        email:       body.email       || '',
-        industry:    body.industry    || '',
-        region:      body.region      || '',
-        revenue:     body.revenue     || '',
-        years:       body.years       || '',
-        employees:   body.employees   || '',
-        goals:       body.goals       || '',
-        passRate:    body.passRate    || '',
-        maxAmount:   body.maxAmount   || '',
-        totalGrants: body.totalGrants || '',
-        marketing:   body.marketing   || ''
-      })
+    const payload = JSON.stringify({
+      timestamp:   body.timestamp   || new Date().toLocaleString('ko-KR'),
+      company:     body.company     || '',
+      owner:       body.owner       || '',
+      phone:       body.phone       || '',
+      email:       body.email       || '',
+      industry:    body.industry    || '',
+      region:      body.region      || '',
+      revenue:     body.revenue     || '',
+      years:       body.years       || '',
+      employees:   body.employees   || '',
+      goals:       body.goals       || '',
+      passRate:    body.passRate    || '',
+      maxAmount:   body.maxAmount   || '',
+      totalGrants: body.totalGrants || '',
+      marketing:   body.marketing   || ''
     });
 
-    const result = await response.text();
-    res.status(200).json({ success: true, result });
+    // redirect: 'follow' 추가로 리다이렉트 자동 처리
+    const response = await fetch(SHEET_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/plain'
+      },
+      body: payload,
+      redirect: 'follow'
+    });
+
+    const text = await response.text();
+    res.status(200).json({ success: true, result: text });
 
   } catch (err) {
-    // 저장 실패해도 사용자 경험에는 영향 없게 200 반환
     res.status(200).json({ success: false, error: err.message });
   }
 }
