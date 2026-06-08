@@ -7,20 +7,21 @@ export default async function handler(req, res) {
   const API_KEY = process.env.DATA_GO_KR_API_KEY;
   const { industry } = req.query;
  
+  // 업종 → 분야코드(searchLclasId) 매핑
+  // 금융=010, 기술=020, 인력=030, 수출=040, 내수=050, 창업=060, 경영=070, 기타=080
   const categoryMap = {
-    food:          '창업',
-    retail:        '내수',
-    service:       '경영',
-    it:            '기술',
-    manufacturing: '기술',
-    other:         '창업'
+    food:          '060', // 창업
+    retail:        '050', // 내수
+    service:       '070', // 경영
+    it:            '020', // 기술
+    manufacturing: '020', // 기술
+    other:         '060'  // 창업
   };
-  const category = categoryMap[industry] || '창업';
+  const searchLclasId = categoryMap[industry] || '060';
  
   try {
     const encodedKey = encodeURIComponent(API_KEY);
-    // 올바른 엔드포인트로 수정
-    const url = `https://apis.data.go.kr/1421000/bizinfo/getPublicInfoList?serviceKey=${encodedKey}&numOfRows=10&pageNo=1&returnType=json&pbancCtgry=${encodeURIComponent(category)}`;
+    const url = `https://apis.data.go.kr/1421000/bizinfo/getPublicInfoList?serviceKey=${encodedKey}&numOfRows=10&pageNo=1&dataType=json&searchLclasId=${searchLclasId}`;
  
     const response = await fetch(url, {
       headers: { 'Accept': 'application/json' }
@@ -82,7 +83,7 @@ export default async function handler(req, res) {
         competition: '약 ' + (i + 2) + ':1',
         selfFunding: (20 + i * 5) + '%',
         easyDesc:    (summary || name).slice(0, 40),
-        tags:        [category, agency.split(' ')[0]],
+        tags:        [searchLclasId, agency.split(' ')[0]],
       };
     });
  
