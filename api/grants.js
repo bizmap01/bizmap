@@ -72,20 +72,46 @@ export default async function handler(req, res) {
         }
       }
 
-      // HTML 태그 제거
-      var cleanSummary = (summary || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+      // HTML 태그 제거 및 텍스트 정리
+      var cleanSummary = (summary || '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/\s+/g, ' ')
+        .trim();
       var cleanName = name.replace(/<[^>]*>/g, '').trim();
+
+      // 설명 문장 단위로 자르기 (60자 이내에서 자연스럽게)
+      var descText = cleanSummary || cleanName;
+      var shortDesc = descText;
+      if (descText.length > 55) {
+        var cutIdx = descText.lastIndexOf(' ', 55);
+        shortDesc = cutIdx > 20 ? descText.slice(0, cutIdx) + '...' : descText.slice(0, 55) + '...';
+      }
+
+      // 사업명 앞의 [지역] 태그 분리
+      var dispName = cleanName;
+      var regionTag = '';
+      var regionMatch = cleanName.match(/^\[([^\]]+)\]\s*/);
+      if (regionMatch) {
+        regionTag = '[' + regionMatch[1] + '] ';
+        dispName = cleanName.replace(regionMatch[0], '');
+      }
+      if (dispName.length > 30) dispName = dispName.slice(0, 28) + '...';
+      var finalName = regionTag + dispName;
 
       return {
         rank:        i + 1,
-        name:        cleanName.slice(0, 40),
+        name:        finalName,
         agency:      agency.slice(0, 20),
-        amount:      '금액 협의',
+        amount:      '지원규모 공고 참조',
         probability: i < 2 ? '높음' : '보통',
         deadline:    deadline,
         competition: '약 ' + (i + 2) + ':1',
         selfFunding: (20 + i * 5) + '%',
-        easyDesc:    (cleanSummary || cleanName).slice(0, 50),
+        easyDesc:    shortDesc,
         tags:        [item.pldirSportRealmLclasCodeNm || categoryName, agency.split(' ')[0]],
         url:         url2
       };
