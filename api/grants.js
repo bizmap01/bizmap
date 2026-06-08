@@ -7,7 +7,6 @@ export default async function handler(req, res) {
   const API_KEY = process.env.DATA_GO_KR_API_KEY;
   const { industry } = req.query;
  
-  // 업종 → 분야 코드 매핑
   const categoryMap = {
     food:          '창업',
     retail:        '내수',
@@ -19,10 +18,9 @@ export default async function handler(req, res) {
   const category = categoryMap[industry] || '창업';
  
   try {
-    // API 키를 encodeURIComponent로 인코딩해서 전달
     const encodedKey = encodeURIComponent(API_KEY);
-    const encodedCat = encodeURIComponent(category);
-    const url = `https://apis.data.go.kr/1090000/SbizSupportService/getSbizSupportList?serviceKey=${encodedKey}&numOfRows=10&pageNo=1&type=json&pbancCtgry=${encodedCat}`;
+    // 올바른 엔드포인트로 수정
+    const url = `https://apis.data.go.kr/1421000/bizinfo/getPublicInfoList?serviceKey=${encodedKey}&numOfRows=10&pageNo=1&returnType=json&pbancCtgry=${encodeURIComponent(category)}`;
  
     const response = await fetch(url, {
       headers: { 'Accept': 'application/json' }
@@ -30,7 +28,6 @@ export default async function handler(req, res) {
  
     const text = await response.text();
  
-    // JSON 파싱 시도
     let data;
     try {
       data = JSON.parse(text);
@@ -38,7 +35,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, message: '파싱 실패', raw: text.slice(0, 300) });
     }
  
-    // 응답 구조 파싱 (다양한 형태 대응)
+    // 응답 구조 파싱
     const items =
       data?.response?.body?.items?.item ||
       data?.body?.items?.item ||
@@ -52,7 +49,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, message: '데이터 없음', debug: JSON.stringify(data).slice(0, 500) });
     }
  
-    // BIZMAP 형식으로 변환
     const grants = itemList.slice(0, 5).map((item, i) => {
       const name    = item.pbanc_nm    || item.pbancNm    || item.사업명    || '지원사업';
       const agency  = item.inst_nm     || item.instNm     || item.소관기관명 || '정부기관';
