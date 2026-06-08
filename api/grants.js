@@ -72,16 +72,20 @@ export default async function handler(req, res) {
         }
       }
 
+      // HTML 태그 제거
+      var cleanSummary = (summary || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+      var cleanName = name.replace(/<[^>]*>/g, '').trim();
+
       return {
         rank:        i + 1,
-        name:        name.slice(0, 30),
+        name:        cleanName.slice(0, 40),
         agency:      agency.slice(0, 20),
         amount:      '금액 협의',
         probability: i < 2 ? '높음' : '보통',
         deadline:    deadline,
         competition: '약 ' + (i + 2) + ':1',
         selfFunding: (20 + i * 5) + '%',
-        easyDesc:    (summary || name).slice(0, 40),
+        easyDesc:    (cleanSummary || cleanName).slice(0, 50),
         tags:        [item.pldirSportRealmLclasCodeNm || categoryName, agency.split(' ')[0]],
         url:         url2
       };
