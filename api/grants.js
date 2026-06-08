@@ -118,6 +118,9 @@ export default async function handler(req, res) {
       return res.status(200).json({success:false, message:'데이터 없음'});
     }
 
+    // 디버그: 처음 5개 사업명 확인
+    const debugNames = itemList.slice(0,5).map(function(i){return i.pblancNm||'';});
+
     // ── 지역 필터링 ──
     if (regionKr) {
       // 1차: 선택지역 + 전국 사업
@@ -207,7 +210,7 @@ export default async function handler(req, res) {
       };
     });
 
-    res.status(200).json({ success:true, grants, total:grants.length });
+    res.status(200).json({ success:true, grants, total:grants.length, debug_names:debugNames });
 
   } catch(err) {
     res.status(200).json({ success:false, error:err.message });
