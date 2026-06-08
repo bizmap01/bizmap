@@ -115,7 +115,12 @@ export default async function handler(req, res) {
     let itemList = Array.isArray(items) ? items : (items ? [items] : []);
 
     if (!itemList || itemList.length === 0) {
-      return res.status(200).json({success:false, message:'데이터 없음'});
+      return res.status(200).json({
+        success:false,
+        message:'데이터 없음',
+        raw_response: JSON.stringify(data).slice(0, 800),
+        item_count: itemList.length
+      });
     }
 
     // 디버그: 처음 5개 사업명 확인
