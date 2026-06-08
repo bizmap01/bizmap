@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   const API_KEY = process.env.DATA_GO_KR_API_KEY;
   const { industry } = req.query;
  
-  // 업종 → 분야 코드 매핑 (금융/기술/인력/수출/내수/창업/경영/기타)
+  // 업종 → 분야 코드 매핑
   const categoryMap = {
     food:          '창업',
     retail:        '내수',
@@ -19,47 +19,58 @@ export default async function handler(req, res) {
   const category = categoryMap[industry] || '창업';
  
   try {
-    // 올바른 data.go.kr 중소기업지원사업 API 엔드포인트
-    const url = `https://apis.data.go.kr/1090000/SbizSupportService/getSbizSupportList?serviceKey=${API_KEY}&numOfRows=10&pageNo=1&type=json&pbancCtgry=${encodeURIComponent(category)}`;
+    // API 키를 encodeURIComponent로 인코딩해서 전달
+    const encodedKey = encodeURIComponent(API_KEY);
+    const encodedCat = encodeURIComponent(category);
+    const url = `https://apis.data.go.kr/1090000/SbizSupportService/getSbizSupportList?serviceKey=${encodedKey}&numOfRows=10&pageNo=1&type=json&pbancCtgry=${encodedCat}`;
  
     const response = await fetch(url, {
       headers: { 'Accept': 'application/json' }
     });
-    const data = await response.json();
  
-    // 응답 구조 파싱
-    const items = data?.response?.body?.items?.item || data?.items?.item || [];
-    const itemList = Array.isArray(items) ? items : [items];
+    const text = await response.text();
+ 
+    // JSON 파싱 시도
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(e) {
+      return res.status(200).json({ success: false, message: '파싱 실패', raw: text.slice(0, 300) });
+    }
+ 
+    // 응답 구조 파싱 (다양한 형태 대응)
+    const items =
+      data?.response?.body?.items?.item ||
+      data?.body?.items?.item ||
+      data?.items?.item ||
+      data?.item ||
+      [];
+ 
+    const itemList = Array.isArray(items) ? items : (items ? [items] : []);
  
     if (!itemList || itemList.length === 0) {
-      return res.status(200).json({ success: false, message: '데이터 없음', debug: data });
+      return res.status(200).json({ success: false, message: '데이터 없음', debug: JSON.stringify(data).slice(0, 500) });
     }
  
     // BIZMAP 형식으로 변환
     const grants = itemList.slice(0, 5).map((item, i) => {
-      const name    = item.pbanc_nm     || item.pbancNm     || item.사업명     || '지원사업';
-      const agency  = item.inst_nm      || item.instNm      || item.소관기관명  || '정부기관';
-      const startDt = item.rcept_bgng_dt || item.rceptBgngDt || item.신청시작일 || '';
-      const endDt   = item.rcept_end_dt  || item.rceptEndDt  || item.신청종료일 || '';
-      const url2    = item.detail_url   || item.detailUrl   || item.상세URL    || 'https://www.bizinfo.go.kr';
-      const summary = item.pbanc_ctnt   || item.pbancCtnt   || item.사업내용   || '';
-      const amt     = item.sprt_amt     || item.sprtAmt     || item.지원금액   || '';
+      const name    = item.pbanc_nm    || item.pbancNm    || item.사업명    || '지원사업';
+      const agency  = item.inst_nm     || item.instNm     || item.소관기관명 || '정부기관';
+      const endDt   = item.rcept_end_dt || item.rceptEndDt || item.신청종료일 || '';
+      const summary = item.pbanc_ctnt  || item.pbancCtnt  || item.사업내용  || '';
+      const amt     = item.sprt_amt    || item.sprtAmt    || item.지원금액  || '';
  
-      // 마감일 포맷 (YYYYMMDD → YYYY.MM.DD)
       let deadline = '상시';
-      const dt = endDt.replace(/-/g, '');
+      const dt = String(endDt).replace(/-/g, '');
       if (dt && dt.length >= 8) {
         deadline = dt.slice(0,4) + '.' + dt.slice(4,6) + '.' + dt.slice(6,8);
       }
  
-      // 금액 포맷
       let amtStr = '금액 협의';
       if (amt && amt !== '0' && amt !== '') {
         const num = parseInt(String(amt).replace(/[^0-9]/g, ''));
         if (!isNaN(num) && num > 0) {
-          amtStr = num >= 10000
-            ? '최대 ' + (num / 10000).toFixed(0) + '억원'
-            : '최대 ' + num.toLocaleString() + '만원';
+          amtStr = num >= 10000 ? '최대 ' + (num/10000).toFixed(0) + '억원' : '최대 ' + num.toLocaleString() + '만원';
         } else {
           amtStr = String(amt).slice(0, 20);
         }
@@ -76,7 +87,6 @@ export default async function handler(req, res) {
         selfFunding: (20 + i * 5) + '%',
         easyDesc:    (summary || name).slice(0, 40),
         tags:        [category, agency.split(' ')[0]],
-        url:         url2
       };
     });
  
