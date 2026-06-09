@@ -218,7 +218,7 @@ export default async function handler(req, res) {
       retail:  ['유통','판로','온라인','소상공인','상권','이커머스','도소매'],
       service: ['서비스','소상공인','미용','교육','학원','세탁','생활'],
       it:      ['IT','소프트웨어','디지털','AI','스마트','ICT','플랫폼','스타트업','벤처','R&D','기술','혁신','정보통신','SW'],
-      manufacturing:['제조','공장','생산','스마트공장','기계','소재','부품','자동화'],
+      manufacturing:['제조업','제조기업','스마트공장','공장자동화','생산설비','제조혁신','소재부품','부품소재','스마트제조','제조공정','생산라인'],
       other:   ['소상공인','중소기업','창업']
     };
     const indKws = industryKeywords[industry]||industryKeywords.other;
@@ -233,9 +233,9 @@ export default async function handler(req, res) {
       return Object.assign({},item,{_score:sc});
     }).sort(function(a,b){return b._score-a._score;});
 
-    // ── 상위 API 결과 최대 3개 선택 (업종 점수 0이면 제외) ──
+    // ── 상위 API 결과 최대 3개 선택 (업종 점수 2 미만이면 제외) ──
     const topApi = filteredApi.filter(function(item){
-      return (item._score || 0) > 0;
+      return (item._score || 0) >= 2;
     }).slice(0,3);
 
     // ── fallback DB에서 나머지 보완 ──
