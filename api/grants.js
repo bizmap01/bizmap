@@ -18,6 +18,14 @@ export default async function handler(req, res) {
   };
   const regionKr = regionMap[region] || '';
   const allRegions = ['서울','경기','인천','부산','대구','광주','대전','울산','세종','강원','경남','경북','전남','전북','충남','충북','제주'];
+  // 지역 약칭 → 전체명 매핑
+  const regionFullNames = {
+    '경남':'경상남도', '경북':'경상북도', '전남':'전라남도', '전북':'전라북도',
+    '충남':'충청남도', '충북':'충청북도', '강원':'강원도', '제주':'제주도',
+    '서울':'서울특별시', '경기':'경기도', '인천':'인천광역시',
+    '부산':'부산광역시', '대구':'대구광역시', '광주':'광주광역시',
+    '대전':'대전광역시', '울산':'울산광역시', '세종':'세종특별자치시'
+  };
 
   // ── fallback DB ──
   const fallbackDB = {
@@ -144,8 +152,23 @@ export default async function handler(req, res) {
           // 태그 없는 경우: 주관기관이 다른 지역 기관이면 제거
           allRegions.forEach(function(r){
             if(r === regionKr) return;
-            if(agency.includes(r+'광역시') || agency.includes(r+'특별시') || agency.includes(r+'도') || agency.includes(r+'시청') || agency.includes(r+'군청')){
-              hasOtherRegion = true;
+            var fullName = regionFullNames[r] || r;
+            var myFullName = regionFullNames[regionKr] || regionKr;
+            // 주관기관명 체크 (약칭/전체명 모두)
+            if(agency.includes(fullName) || agency.includes(r+'광역시') ||
+               agency.includes(r+'특별시') || agency.includes(r+'도') ||
+               agency.startsWith(r)){
+              if(!agency.includes(myFullName) && !agency.includes(regionKr)){
+                hasOtherRegion = true;
+              }
+            }
+            // 설명에 특정 지역 소재 기업만인 경우
+            if(desc.includes(r+' 소재') || desc.includes(r+'소재') ||
+               desc.includes(fullName+' 소재') || nm.includes(r+' 스타트업') ||
+               nm.includes(r+' 기업') || nm.startsWith(r+' ')){
+              if(!fullText.includes(regionKr) && !fullText.includes(myFullName)){
+                hasOtherRegion = true;
+              }
             }
           });
         }
