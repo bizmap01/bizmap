@@ -128,18 +128,27 @@ export default async function handler(req, res) {
         const desc = item.bsnsSumryCn || '';
         const fullText = nm + agency + desc;
 
-        // 1. 다른 지역 태그 패턴 체크 ([경북], [부산], [부산·울산·경남] 등)
+        // 1. 다른 지역 태그 패턴 체크
         let hasOtherRegion = false;
-        allRegions.forEach(function(r){
-          if(r === regionKr) return;
-          // [경북], [경북 ...], 경북테크노파크, 경북도 등 다양한 패턴
-          if(nm.includes('['+r) || agency.includes(r+'광역시') || agency.includes(r+'특별시') || agency.includes(r+'도')){
-            // 내 지역이 포함된 경우는 제외
-            if(!fullText.includes(regionKr)){
+
+        // 사업명에 [지역] 태그가 있는 경우 → 내 지역 태그만 허용
+        var tagMatch = nm.match(/^\[([^\]]+)\]/);
+        if(tagMatch){
+          var tagContent = tagMatch[1]; // 예: "충남", "부산·울산·경남", "인천"
+          if(tagContent.includes(regionKr)){
+            hasOtherRegion = false; // 내 지역 포함 → 통과
+          } else {
+            hasOtherRegion = true; // 내 지역 없는 다른 지역 태그 → 제거
+          }
+        } else {
+          // 태그 없는 경우: 주관기관이 다른 지역 기관이면 제거
+          allRegions.forEach(function(r){
+            if(r === regionKr) return;
+            if(agency.includes(r+'광역시') || agency.includes(r+'특별시') || agency.includes(r+'도') || agency.includes(r+'시청') || agency.includes(r+'군청')){
               hasOtherRegion = true;
             }
-          }
-        });
+          });
+        }
 
         // 2. 사업명에 특정 지역명이 직접 포함된 경우 (태그 없이)
         if(!hasOtherRegion){
