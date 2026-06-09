@@ -315,7 +315,7 @@ export default async function handler(req, res) {
         agency:item.agency,
         amount:item.amount,
         probability:prob,
-        deadline:'상시',
+        deadline:'공고 확인',
         competition:item.comp,
         selfFunding:item.self,
         easyDesc:item.desc,
@@ -347,7 +347,7 @@ export default async function handler(req, res) {
     const grants = fbList.slice(0,5).map(function(item,i){
       const probScore=75-(i*8)+baseBonus+(item.pb||0);
       const prob=probScore>=80?'높음':probScore>=65?'보통':'낮음';
-      return {rank:i+1,name:item.name,agency:item.agency,amount:item.amount,probability:prob,deadline:'상시',competition:item.comp,selfFunding:item.self,easyDesc:item.desc,tags:item.tags,url:'https://www.bizinfo.go.kr',source:'db'};
+      return {rank:i+1,name:item.name,agency:item.agency,amount:item.amount,probability:prob,deadline:'공고 확인',competition:item.comp,selfFunding:item.self,easyDesc:item.desc,tags:item.tags,url:'https://www.bizinfo.go.kr',source:'db'};
     });
     res.status(200).json({success:true, grants, total:grants.length, fallback:true});
   }
