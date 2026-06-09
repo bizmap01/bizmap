@@ -225,17 +225,18 @@ export default async function handler(req, res) {
 
     filteredApi = filteredApi.map(function(item){
       const t=(item.pblancNm||'')+(item.bsnsSumryCn||'')+(item.pldirSportRealmLclasCodeNm||'');
-      var sc=0;
-      indKws.forEach(function(kw){if(t.includes(kw))sc+=2;});
-      kwList.forEach(function(kw){if(t.includes(kw))sc++;});
-      // 내 지역 사업 가산점
-      if(regionKr && (item.pblancNm||'').includes(regionKr)) sc+=3;
-      return Object.assign({},item,{_score:sc});
+      var indSc=0; // 업종 점수 (통과 기준)
+      var goalSc=0; // 목표 점수 (정렬용)
+      var regionSc=0; // 지역 점수 (정렬용)
+      indKws.forEach(function(kw){if(t.includes(kw))indSc+=2;});
+      kwList.forEach(function(kw){if(t.includes(kw))goalSc++;});
+      if(regionKr && (item.pblancNm||'').includes(regionKr)) regionSc=2;
+      return Object.assign({},item,{_score:indSc+goalSc+regionSc, _indSc:indSc});
     }).sort(function(a,b){return b._score-a._score;});
 
     // ── 상위 API 결과 최대 3개 선택 (업종 점수 2 미만이면 제외) ──
     const topApi = filteredApi.filter(function(item){
-      return (item._score || 0) >= 2;
+      return (item._indSc || 0) >= 2; // 반드시 업종 관련 키워드가 있어야 통과
     }).slice(0,3);
 
     // ── fallback DB에서 나머지 보완 ──
