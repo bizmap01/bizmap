@@ -162,10 +162,12 @@ export default async function handler(req, res) {
                 hasOtherRegion = true;
               }
             }
-            // 설명에 특정 지역 소재 기업만인 경우
+            // 설명에 특정 지역 소재/지역 기업만인 경우
             if(desc.includes(r+' 소재') || desc.includes(r+'소재') ||
                desc.includes(fullName+' 소재') || nm.includes(r+' 스타트업') ||
-               nm.includes(r+' 기업') || nm.startsWith(r+' ')){
+               nm.includes(r+' 기업') || nm.startsWith(r+' ') ||
+               desc.includes(r+'지역 중소기업') || desc.includes(r+'지역 기업') ||
+               desc.includes(r+'지역 소재') || desc.includes(r+' 지역 소재')){
               if(!fullText.includes(regionKr) && !fullText.includes(myFullName)){
                 hasOtherRegion = true;
               }
