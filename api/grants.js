@@ -233,8 +233,10 @@ export default async function handler(req, res) {
       return Object.assign({},item,{_score:sc});
     }).sort(function(a,b){return b._score-a._score;});
 
-    // ── 상위 API 결과 최대 3개 선택 ──
-    const topApi = filteredApi.slice(0,3);
+    // ── 상위 API 결과 최대 3개 선택 (업종 점수 0이면 제외) ──
+    const topApi = filteredApi.filter(function(item){
+      return (item._score || 0) > 0;
+    }).slice(0,3);
 
     // ── fallback DB에서 나머지 보완 ──
     const fbList = (fallbackDB[industry]||fallbackDB.other).slice();
