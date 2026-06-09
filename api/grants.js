@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     manufacturing:[
       {name:'스마트공장 구축 지원',agency:'중소벤처기업부',amount:'최대 5,000만원',comp:'약 2.5:1',self:'30%',pb:2,tags:['스마트공장','자동화'],desc:'공장 자동화·IoT 설비 도입 지원'},
       {name:'제조혁신 기반 구축사업',agency:'산업통상자원부',amount:'최대 3,000만원',comp:'약 3:1',self:'25%',pb:1,tags:['제조','혁신'],desc:'생산 공정 효율화 비용 지원'},
-      {name:'중소기업 R&D 지원',agency:'KEIT',amount:'최대 1억 5,000만원',comp:'약 5:1',self:'25%',pb:0,tags:['R&D','기술'],desc:'신제품 개발·시험인증 비용 지원'},
+      {name:'중소기업 R&D 지원',agency:'중소기업기술정보진흥원',amount:'최대 1억 5,000만원',comp:'약 5:1',self:'25%',pb:0,tags:['R&D','기술'],desc:'신제품 개발·시험인증 비용 지원'},
       {name:'수출 유망 중소기업 육성',agency:'KOTRA',amount:'최대 2,000만원',comp:'약 2.3:1',self:'20%',pb:3,tags:['수출','해외'],desc:'해외 판로 개척 비용 지원'},
       {name:'녹색 기술인증 지원',agency:'환경부',amount:'최대 1,000만원',comp:'약 1.5:1',self:'10%',pb:5,tags:['친환경','인증'],desc:'친환경 제조 공정 전환 비용 지원'}
     ],
@@ -120,20 +120,64 @@ export default async function handler(req, res) {
     });
 
     // ── API 데이터 지역 필터링 (엄격) ──
-    // 선택 지역 사업 + 전국 사업만 허용, 다른 지역 완전 제거
     let filteredApi = apiItems;
     if(regionKr){
       filteredApi = apiItems.filter(function(item){
         const nm = item.pblancNm || '';
-        // 다른 지역 태그가 있으면 제거
+        const agency = item.jrsdInsttNm || '';
+        const desc = item.bsnsSumryCn || '';
+        const fullText = nm + agency + desc;
+
+        // 1. 다른 지역 태그 패턴 체크 ([경북], [부산], [부산·울산·경남] 등)
         let hasOtherRegion = false;
         allRegions.forEach(function(r){
-          if(r !== regionKr && (nm.includes('['+r+']') || nm.includes('['+r+' '))){
-            hasOtherRegion = true;
+          if(r === regionKr) return;
+          // [경북], [경북 ...], 경북테크노파크, 경북도 등 다양한 패턴
+          if(nm.includes('['+r) || agency.includes(r+'광역시') || agency.includes(r+'특별시') || agency.includes(r+'도')){
+            // 내 지역이 포함된 경우는 제외
+            if(!fullText.includes(regionKr)){
+              hasOtherRegion = true;
+            }
           }
         });
+
+        // 2. 사업명에 특정 지역명이 직접 포함된 경우 (태그 없이)
+        if(!hasOtherRegion){
+          allRegions.forEach(function(r){
+            if(r === regionKr) return;
+            if(nm.includes(r+'지역') || nm.includes('·'+r+'·') || nm.includes('·'+r+']')){
+              if(!fullText.includes(regionKr)) hasOtherRegion = true;
+            }
+          });
+        }
+
+        // 3. 권역명 필터링 (대경권=대구+경북, 동남권=부산+울산+경남, 충청권=충남+충북 등)
+        if(!hasOtherRegion){
+          var regionZones = {
+            '대경권':['대구','경북'], '동남권':['부산','울산','경남'],
+            '충청권':['충남','충북','세종','대전'], '호남권':['전남','전북','광주'],
+            '강원권':['강원'], '제주권':['제주']
+          };
+          Object.keys(regionZones).forEach(function(zone){
+            if(!nm.includes(zone)) return;
+            var zoneRegions = regionZones[zone];
+            var myZone = zoneRegions.indexOf(regionKr) >= 0;
+            if(!myZone && !fullText.includes(regionKr)){
+              hasOtherRegion = true;
+            }
+          });
+        }
+
         return !hasOtherRegion;
       });
+
+      // 필터 결과가 너무 적으면 전국 사업(지역 태그 없는 것)만
+      if(filteredApi.length < 2){
+        filteredApi = apiItems.filter(function(item){
+          const nm = item.pblancNm || '';
+          return !nm.match(/^\[/); // 지역 태그로 시작하는 것 제외
+        });
+      }
     }
 
     // ── 업종 키워드 점수로 API 데이터 정렬 ──
